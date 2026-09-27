@@ -2,11 +2,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.db import init_db, engine
+
 
 @asynccontextmanager
-def lifespan(app: FastAPI):
+async  def lifespan(app: FastAPI):
+    init_db()
     yield
-
+    engine.dispose()
 
 def create_app() -> FastAPI:
     app = FastAPI(lifespan=lifespan)

@@ -10,5 +10,6 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "redis[hiredis]>=8.1.0",
     "sqlmodel>=0.0.47",
+    "uuid>=1.30",
     "uvicorn>=0.54.0",
 ]
