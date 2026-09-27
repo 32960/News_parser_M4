@@ -42,13 +42,13 @@ services:
 #    ports:
 #      - "8000:8000"
 
-#  celery-worker:
-#    <<: *app
-#    command: uv run -m celery -A celery_app worker -l info
-#
-#  celery-beat:
-#    <<: *app
-#    command: uv run -m celery -A celery_app beat -l info
+  celery-worker:
+    <<: *app
+    command: uv run -m celery -A celery_app worker -l info
+
+  celery-beat:
+    <<: *app
+    command: uv run -m celery -A celery_app beat -l info
 
 #  flower:
 #    <<: *app

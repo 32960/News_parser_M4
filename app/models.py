@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import datetime
 from enum import StrEnum, auto
 import sqlalchemy as sa
@@ -37,22 +35,27 @@ class Source(SQLModel, table=True):
     url: str = Field(min_length=1, nullable=False)
     enabled: bool = Field(default=True)
 
-    news_item: [NewsItem] = Relationship(back_populates="source")
+    news_items: list["NewsItem"] = Relationship(back_populates="source")
 
 
 class NewsItem(SQLModel, table=True):
     __tablename__ = "news_items"
+    __table_args__ = (
+        sa.UniqueConstraint("url", name="uq_news_items_url"),
+        # sa.UniqueConstraint("telegram_channel_id", "telegram_message_id",
+        #                     name="uq_news_items_tg"),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     title: str = Field(min_length=1, max_length=255, nullable=False)
-    url: str = Field(min_length=1, nullable=True)
-    telegram_channel_id: str = Field(max_length=255, nullable=True)
-    telegram_message_id: int = Field(nullable=True)
-    summary: str = Field(nullable=True)
-    source_id: UUID = Field(foreign_key="source.id",
+    url: str | None = Field(default=None, nullable=True)
+    telegram_channel_id: int | None = Field(default=None, nullable=True)
+    telegram_message_id: int | None = Field(default=None, nullable=True)
+    summary: str | None = Field(default=None, nullable=True)
+    source_id: UUID = Field(foreign_key="sources.id",
                             ondelete="RESTRICT", nullable=False)
-    published_at: datetime = Field(nullable=True)
-    collected_at: datetime = Field(default=datetime.now)
+    published_at: datetime | None = Field(default=None, nullable=True)
+    collected_at: datetime = Field(default_factory=datetime.now)
     raw_text: str = Field(nullable=False)
 
     source: Source = Relationship(back_populates="news_items")
