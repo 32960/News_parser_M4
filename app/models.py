@@ -65,7 +65,7 @@ class Post(SQLModel, table=True):
     __tablename__ = 'posts'
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    news_item_id: UUID = Field(foreign_key='news_item.id',
+    news_item_id: UUID = Field(foreign_key='news_items.id',
                                ondelete='RESTRICT', nullable=False)
     generated_text: str = Field(nullable=True)
     generated_at: datetime = Field(default=None, nullable=True)
