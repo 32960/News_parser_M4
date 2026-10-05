@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     celery_broker_url: str
     celery_result_backend: str
 
+    telegram_session_name: str
+    telegram_api_id: str
+    telegram_api_hash: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
