@@ -6,11 +6,10 @@ from sqlmodel import Session
 
 from app.api.schemas import SourceRead, SourceWrite, SourceUpdate, NewsItemRead, PostRead, TaskResponse, GeneratePayload
 from app.db import get_session
-from app.services import (SourceService as s,
-                          NewsService as n,
-                          PostService as p,
-                          )
-from app.services_dir.task_service import TaskService as t
+from app.services.source_service import SourceService as s
+from app.services.news_service import NewsService as n
+from app.services.post_service import PostService as p
+from app.services.task_service import TaskService as t
 
 router = APIRouter(
     prefix="/api",

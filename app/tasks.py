@@ -3,7 +3,8 @@ import asyncio
 from app.db import open_session
 from app.models import Source
 from app.parsers import get_parser
-from app.services import SourceService, NewsService
+from app.services.source_service import SourceService
+from app.services.news_service import NewsService
 from celery_app import app
 
 logger = logging.getLogger(__name__)

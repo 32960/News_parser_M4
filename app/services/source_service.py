@@ -1,13 +1,10 @@
-import logging
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from app.api.schemas import SourceWrite, NewsItemRead, PostRead, SourceUpdate
-from app.models import Source, NewsItem, Post
-
-logger = logging.getLogger(__name__)
+from app.api.schemas import SourceUpdate, SourceWrite
+from app.models import NewsItem, Source
 
 
 class SourceService:
@@ -65,48 +62,3 @@ class SourceService:
             )
         session.delete(source)
         session.commit()
-
-
-class NewsService:
-    @staticmethod
-    def list(session: Session) -> list[NewsItemRead]:
-        return session.exec(select(NewsItem)).all()
-
-    @staticmethod
-    def create(session: Session, article: dict) -> NewsItem:
-        if article.get('url'):
-            if session.exec(
-                select(NewsItem.id).where(NewsItem.url == article['url'])
-            ).first():
-                logger.warning(f"Duplicate article: {article['url']}")
-                return None
-        else:
-            channel_id = article['telegram_channel_id']
-            message_id = article['telegram_message_id']
-            if session.exec(
-                    select(NewsItem.id).where(
-                        NewsItem.telegram_channel_id == channel_id,
-                        NewsItem.telegram_message_id == message_id)
-            ).first():
-                logger.warning(
-                    "Duplicate Telegram article: channel_id=%s, message_id=%s",
-                    channel_id, message_id,
-                )
-                return None
-
-        news_item = NewsItem(**article)
-        session.add(news_item)
-        session.commit()
-        return news_item
-
-class PostService:
-    @staticmethod
-    def list(session: Session) -> list[PostRead]:
-        return session.exec(select(Post)).all()
-
-    @staticmethod
-    def get(session: Session, post_id: UUID) -> Post:
-        post = session.get(Post, post_id)
-        if post is None:
-            raise HTTPException(status_code=404, detail="Post not found")
-        return post
