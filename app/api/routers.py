@@ -9,8 +9,8 @@ from app.db import get_session
 from app.services import (SourceService as s,
                           NewsService as n,
                           PostService as p,
-                          TaskService as t)
-
+                          )
+from app.services_dir.task_service import TaskService as t
 
 router = APIRouter(
     prefix="/api",

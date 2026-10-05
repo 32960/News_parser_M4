@@ -37,6 +37,9 @@ class Source(SQLModel, table=True):
 
     news_items: list["NewsItem"] = Relationship(back_populates="source")
 
+    def __str__(self):
+        return f"{self.type} {self.name}: {self.url}"
+
 
 class NewsItem(SQLModel, table=True):
     __tablename__ = "news_items"

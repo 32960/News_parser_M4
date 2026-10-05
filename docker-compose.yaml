@@ -23,17 +23,17 @@ services:
       timeout: 2s
       retries: 5
 
-#  redis:
-#    image: redis:7.4-alpine
-#    ports:
-#      - "6379:6379"
-#    volumes:
-#      - redis_data:/data
-#    healthcheck:
-#      test: ["CMD", "redis-cli", "ping"]
-#      interval: 3s
-#      timeout: 2s
-#      retries: 5
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
 
 # uncomment for non-local development
 #  backend:
@@ -42,13 +42,13 @@ services:
 #    ports:
 #      - "8000:8000"
 
-#  celery-worker:
-#    <<: *app
-#    command: uv run -m celery -A celery_app worker -l info
-#
-#  celery-beat:
-#    <<: *app
-#    command: uv run -m celery -A celery_app beat -l info
+  celery-worker:
+    <<: *app
+    command: uv run -m celery -A celery_app worker -l info
+
+  celery-beat:
+    <<: *app
+    command: uv run -m celery -A celery_app beat -l info
 
 #  flower:
 #    <<: *app

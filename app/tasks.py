@@ -1,12 +1,37 @@
-from celery_app import app
 import logging
+import asyncio
+from app.db import open_session
+from app.models import Source
+from app.parsers import get_parser
+from app.services import SourceService, NewsService
+from celery_app import app
 
 logger = logging.getLogger(__name__)
 
 @app.task
 def parse_sources():
     logger.info("Parsing sources...")
-    pass
+    with open_session() as session:
+        sources: list[Source] = SourceService.list(session)
+        total_parsed = 0
+        for source in sources:
+            parser = get_parser(source.type, source.url)
+            if not parser:
+                logger.warning(f"Parser not found for source: {source}")
+                continue
+            articles = asyncio.run(parser.parse(source.url))
+            if not articles:
+                logger.warning(f"No new articles for : {source}")
+                continue
+            for article in articles:
+                # NewsItemCreate pydantic model
+                article['source_id'] = source.id
+                item = NewsService.create(session, article)
+                if item:
+                    total_parsed += 1
+
+        logger.info(f"Parsed {total_parsed} articles")
+    return total_parsed
 
 
 @app.task
