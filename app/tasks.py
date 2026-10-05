@@ -4,9 +4,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 @app.task
-def parse_sources(sources):
+def parse_sources():
     logger.info("Parsing sources...")
-    logger.info(f"Active sources: {sources}")
     pass
 
 
@@ -19,4 +18,10 @@ def generate_post(news_id):
 @app.task
 def publish_post(post_id):
     logger.info(f"Publishing post {post_id}...")
+    pass
+
+
+@app.task
+def publish_next_post():
+    logger.info("Publishing next ready post...")
     pass

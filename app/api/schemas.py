@@ -38,8 +38,8 @@ class NewsItemRead(SQLModel):
     id: UUID
     title: str
     summary: str | None = None
-    url: str
-    source_id: SourceRead
+    url: str | None = None
+    source_id: UUID
     published_at: datetime | None = None
     collected_at: datetime
     telegram_channel_id: int | None = None

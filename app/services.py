@@ -59,15 +59,13 @@ class PostService:
 class TaskService:
     @staticmethod
     def parse(session: Session) -> TaskResponse:
-        active_sources = session.exec(
-            select(Source).where(Source.enabled == True)).all()
-        return TaskResponse(id=parse_sources.delay(sources=active_sources))
+        return TaskResponse(id=parse_sources.delay().id)
 
     @staticmethod
     def generate(session: Session, payload: GeneratePayload) -> TaskResponse:
         return TaskResponse(
-            id=generate_post.delay(news_id=payload.news_item_id))
+            id=generate_post.delay(news_id=payload.news_item_id).id)
 
     @staticmethod
     def publish(session: Session, post_id: UUID) -> TaskResponse:
-        return TaskResponse(id=publish_post.delay(post_id))
+        return TaskResponse(id=publish_post.delay(post_id).id)
