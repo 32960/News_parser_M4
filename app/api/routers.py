@@ -64,6 +64,11 @@ async def list_posts(session: SessionDep):
     return p.list(session)
 
 
+@router.get("/posts/{id}/", response_model=PostRead)
+async def get_post(id: UUID, session: SessionDep):
+    return p.get(session, id)
+
+
 @router.post("/parse", response_model=TaskResponse)
 async def parse_sources_endpoint(session: SessionDep):
     return t.parse(session)
