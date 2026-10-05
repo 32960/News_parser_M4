@@ -2,12 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import session
 from sqlmodel import Session
 
 from app.api.schemas import SourceRead, SourceWrite, SourceUpdate, NewsItemRead, PostRead, TaskResponse, GeneratePayload
 from app.db import get_session
-from app.models import SourceType
 from app.services import (SourceService as s,
                           NewsService as n,
                           PostService as p,
