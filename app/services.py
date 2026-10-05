@@ -13,9 +13,13 @@ logger = logging.getLogger(__name__)
 class SourceService:
     @staticmethod
     def list(session: Session) -> list[Source]:
-        # filter logic ??
-        # TODO: only enabled
         return session.exec(select(Source)).all()
+
+    @staticmethod
+    def list_enabled(session: Session) -> list[Source]:
+        return session.exec(
+            select(Source).where(Source.enabled.is_(True))
+        ).all()
 
     @staticmethod
     def get(session: Session, source_id: UUID) -> Source:
@@ -84,7 +88,10 @@ class NewsService:
                         NewsItem.telegram_channel_id == channel_id,
                         NewsItem.telegram_message_id == message_id)
             ).first():
-                logger.warning(f"Duplicate article: {article['url']}")
+                logger.warning(
+                    "Duplicate Telegram article: channel_id=%s, message_id=%s",
+                    channel_id, message_id,
+                )
                 return None
 
         news_item = NewsItem(**article)

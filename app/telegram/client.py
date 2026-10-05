@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy.util import await_only
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from telethon import TelegramClient
 
 from app.config import get_settings
@@ -16,15 +18,18 @@ def get_telegram_client() -> TelegramClient:
     )
 
 
-async def get_authorized_client() -> TelegramClient | None:
+@asynccontextmanager
+async def get_authorized_client() -> AsyncIterator[TelegramClient]:
     client = get_telegram_client()
-    await client.connect()
-
-    if not await client.is_user_authorized():
+    try:
+        await client.connect()
+        if not await client.is_user_authorized():
+            raise RuntimeError(
+                "Telegram session is not authorized. Authorize it before parsing."
+            )
+        yield client
+    finally:
         await client.disconnect()
-        return None
-
-    return client
 
 
 def authorize():

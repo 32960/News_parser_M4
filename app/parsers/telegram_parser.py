@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from telethon import TelegramClient
-
 from app.models import SourceType
 from app.parsers.base_parser import BaseParser
 from app.telegram.client import get_authorized_client
@@ -25,19 +23,24 @@ class TelegramParser(BaseParser):
         return url
 
     async def parse(self, url: str, limit: int = 10) -> list[dict]:
-        client: TelegramClient = await get_authorized_client()
-        channel = await client.get_entity(url)
-        articles = []
-        async for message in client.iter_messages(channel, limit=limit):
-            article = self.parse_message(message)
-            if article:
-                articles.append(article)
-        return articles
+        async with get_authorized_client() as client:
+            channel = await client.get_entity(url)
+            articles = []
+            async for message in client.iter_messages(channel, limit=limit):
+                article = self.parse_message(message)
+                if article:
+                    articles.append(article)
+            return articles
 
     def parse_message(self, message) -> dict | None:
         text = message.text
+        stripped_text = (text or '').strip()
+        if not stripped_text:
+            return None
+
+        title = stripped_text.splitlines()[0].strip()[:200]
         return {
-            'title': text.splitlines()[0],
+            'title': title,
             'raw_text': text,
             'telegram_message_id': message.id,
             'telegram_channel_id': message.chat_id,

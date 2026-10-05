@@ -1,6 +1,6 @@
 from datetime import datetime
-import asyncio
 import httpx
+from bs4 import BeautifulSoup
 
 from app.parsers.base_parser import SiteParser
 import xml.etree.ElementTree as ET
@@ -38,6 +38,8 @@ class HabrParser(SiteParser):
         print(len(articles))
         return articles
 
-    def clean_html(self, raw_description):
-        # TODO: implement html cleaning
-        return raw_description
+    def clean_html(self, raw_description: str | None) -> str:
+        soup = BeautifulSoup(raw_description or "", "html.parser")
+        for tag in soup.find_all(["script", "style"]):
+            tag.decompose()
+        return soup.get_text(" ", strip=True)

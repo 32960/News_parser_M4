@@ -52,7 +52,9 @@ class NewsItem(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     title: str = Field(min_length=1, max_length=255, nullable=False)
     url: str | None = Field(default=None, nullable=True)
-    telegram_channel_id: int | None = Field(default=None, nullable=True)
+    telegram_channel_id: int | None = Field(
+        default=None, nullable=True, sa_type=sa.BigInteger
+    )
     telegram_message_id: int | None = Field(default=None, nullable=True)
     summary: str | None = Field(default=None, nullable=True)
     source_id: UUID = Field(foreign_key="sources.id",
