@@ -15,8 +15,10 @@ class SourceService:
 
     @staticmethod
     def get(session: Session, source_id: UUID) -> Source:
-        # possible not found
-        return session.exec(select(Source).where(Source.id == source_id)).one()
+        source = session.get(Source, source_id)
+        if source is None:
+            raise HTTPException(status_code=404, detail="Source not found")
+        return source
 
     @staticmethod
     def create(session: Session, source: SourceWrite) -> Source:
@@ -39,8 +41,19 @@ class SourceService:
         return to_change
 
     @staticmethod
-    def delete(session, source_id):
+    def delete(session: Session, source_id: UUID) -> None:
         source = SourceService.get(session, source_id)
+        has_news_items = session.exec(
+            select(NewsItem.id).where(NewsItem.source_id == source.id)
+        ).first()
+        if has_news_items is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Cannot delete a source with news items; "
+                    "set enabled to false instead"
+                ),
+            )
         session.delete(source)
         session.commit()
 
