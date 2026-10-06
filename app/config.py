@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import SecretStr
 
 
 class Settings(BaseSettings):
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
     telegram_api_id: str
     telegram_api_hash: str
 
-    openai_api_key: str
+    openai_api_key: SecretStr
     openai_model: str
 
     model_config = SettingsConfigDict(

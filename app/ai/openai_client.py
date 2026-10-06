@@ -14,11 +14,11 @@ def get_openai_client() -> OpenAI:
     if not settings.openai_api_key:
         raise ValueError("OpenAI API key not configured")
     return OpenAI(
-        api_key=settings.openai_api_key,
+        api_key=settings.openai_api_key.get_secret_value(),
     )
 
 
-def generate_text(text: str) -> str | None:
+def generate_text(text: str) -> str:
     try:
         with get_openai_client() as client:
             response = client.responses.create(
@@ -29,4 +29,4 @@ def generate_text(text: str) -> str | None:
             return response.output_text
     except (ValueError, OpenAIError) as e:
         logger.error(f"Failed to generate text: {str(e)}")
-        return None
+        raise

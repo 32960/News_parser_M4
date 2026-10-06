@@ -70,15 +70,15 @@ async def get_post(id: UUID, session: SessionDep):
 
 
 @router.post("/parse/", response_model=TaskResponse, status_code=202)
-async def parse_sources_endpoint(session: SessionDep):
+async def parse_sources(session: SessionDep):
     return t.parse(session)
 
 
 @router.post("/generate/", response_model=TaskResponse, status_code=202)
-async def generate_post_endpoint(session: SessionDep, payload: GeneratePayload):
+async def generate_post(session: SessionDep, payload: GeneratePayload):
     return t.generate(session, payload)
 
 
 @router.post("/posts/{id}/publish/", response_model=TaskResponse, status_code=202)
-async def publish_post_endpoint(id: UUID, session: SessionDep):
+async def publish_post(id: UUID, session: SessionDep):
     return t.publish(session, id)
