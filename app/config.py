@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     telegram_api_id: str
     telegram_api_hash: str
 
+    openai_api_key: str
+    openai_model: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
