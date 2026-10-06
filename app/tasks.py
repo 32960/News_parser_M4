@@ -5,15 +5,15 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.ai.openai_client import generate_text
-from app.db import open_session
+from app.db import open_session, get_session
 from app.models import Source, Post, PostStatus, NewsItem
 from app.parsers import get_parser
 from app.services.news_service import NewsService
-from app.services.post_service import PostService
 from app.services.source_service import SourceService
+from app.telegram.client import send_message_to_channel
 from celery_app import app
 
 logger = logging.getLogger(__name__)
@@ -112,10 +112,62 @@ def generate_post(post_id: str | UUID) -> str | None:
 @app.task
 def publish_post(post_id):
     logger.info(f"Publishing post {post_id}...")
-    pass
+    return _publish_post(post_id)
 
 
 @app.task
-def publish_next_post():
+def publish_next_post() -> UUID | None:
     logger.info("Publishing next ready post...")
-    pass
+    with open_session() as session:
+        post = session.exec(
+            select(Post).where(Post.status == PostStatus.GENERATED)
+            .order_by(Post.generated_at)
+        ).first()
+        if not post:
+            logger.info("No ready posts to publish")
+            return None
+        return _publish_post(post.id)
+
+
+def _publish_post(post_id) -> UUID | None:
+    with open_session() as session:
+        post = session.get(Post, post_id)
+        if not prepublish_validate(post):
+            return None
+        try:
+            asyncio.run(
+                send_message_to_channel(
+                    f'{post.generated_text}\n\n{post.news_item.url}'
+                )
+            )
+            post.status = PostStatus.PUBLISHED
+            session.add(post)
+            session.commit()
+            return post_id
+        except Exception:
+            session.rollback()
+            post.status = PostStatus.PUBLICATION_FAILED
+            session.add(post)
+            session.commit()
+            logger.exception(f"Failed to publish post {post_id}")
+            return None
+
+
+def prepublish_validate(post):
+    if not post:
+        logger.warning(f"Post not found: {post.id}")
+        return None
+    if post.status not in (PostStatus.GENERATED, PostStatus.PUBLICATION_FAILED):
+        logger.warning(f"Post cannot be published: {post.id}")
+        return None
+    if not post.generated_text.strip():
+        logger.warning(f"Post has no generated text: {post.id}")
+        return None
+    if not post.news_item.url:
+        logger.warning(f"News item has no URL: {post.id}")
+        return None
+    if not post.news_item.source.enabled:
+        logger.warning(
+            f"Source disabled for post {post.id}; skipping publication")
+        return None
+    return post

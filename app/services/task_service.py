@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class TaskService:
     @staticmethod
-    def parse(session: Session) -> ParseResponse:
+    def parse() -> ParseResponse:
         return ParseResponse(task_id=parse_sources.delay().id)
 
     @staticmethod
@@ -29,5 +29,5 @@ class TaskService:
         return GenerateResponse(post_id=post_id)
 
     @staticmethod
-    def publish(session: Session, post_id: UUID) -> TaskResponse:
+    def publish(post_id: UUID) -> TaskResponse:
         return TaskResponse(id=publish_post.delay(post_id).id)

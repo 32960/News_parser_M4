@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     telegram_session_name: str
     telegram_api_id: str
     telegram_api_hash: str
+    telegram_channel: str
 
     openai_api_key: SecretStr
     openai_model: str

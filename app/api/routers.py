@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import delete
 from sqlmodel import Session
 
 from app.api.schemas import SourceRead, SourceWrite, SourceUpdate, NewsItemRead, \
     PostRead, TaskResponse, ParseResponse, GenerateResponse, GeneratePayload
 from app.db import get_session
-from app.services.source_service import SourceService as s
+from app.models import PostStatus, Post, NewsItem
 from app.services.news_service import NewsService as n
 from app.services.post_service import PostService as p
+from app.services.source_service import SourceService as s
 from app.services.task_service import TaskService as t
 
 router = APIRouter(
@@ -61,8 +65,8 @@ async def list_news(session: SessionDep):
 
 
 @router.get("/posts/", response_model=list[PostRead])
-async def list_posts(session: SessionDep):
-    return p.list(session)
+async def list_posts(session: SessionDep, status: PostStatus | None = None):
+    return p.list(session, status)
 
 
 @router.get("/posts/{id}/", response_model=PostRead)
@@ -71,8 +75,8 @@ async def get_post(id: UUID, session: SessionDep):
 
 
 @router.post("/parse/", response_model=ParseResponse, status_code=202)
-async def parse_sources(session: SessionDep):
-    return t.parse(session)
+async def parse_sources():
+    return t.parse()
 
 
 @router.post("/generate/", response_model=GenerateResponse, status_code=202)
@@ -81,5 +85,15 @@ async def generate_post(session: SessionDep, payload: GeneratePayload):
 
 
 @router.post("/posts/{id}/publish/", response_model=TaskResponse, status_code=202)
-async def publish_post(id: UUID, session: SessionDep):
-    return t.publish(session, id)
+async def publish_post(id: UUID):
+    return t.publish(id)
+
+
+@router.post('/data/clear/', status_code=204)
+async def clear_data(session: SessionDep):
+    stmt = delete(Post)
+    stmt2 = delete(NewsItem)
+
+    session.exec(stmt)
+    session.exec(stmt2)
+    session.commit()

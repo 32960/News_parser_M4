@@ -5,13 +5,17 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from app.api.schemas import PostRead
-from app.models import Post
+from app.models import Post, PostStatus
 
 logger = logging.getLogger(__name__)
 
 class PostService:
     @staticmethod
-    def list(session: Session) -> list[PostRead]:
+    def list(session: Session,
+             status: PostStatus | None = None) \
+            -> list[PostRead]:
+        if status:
+            return session.exec(select(Post).where(Post.status == status)).all()
         return session.exec(select(Post)).all()
 
     @staticmethod
