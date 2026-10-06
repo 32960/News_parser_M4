@@ -4,10 +4,16 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from app.api.schemas import SourceUpdate, SourceWrite
-from app.models import NewsItem, Source
+from app.models import NewsItem, Source, SourceType
+from app.parsers import get_parser
 
 
 class SourceService:
+    @staticmethod
+    def validate_site(source_type: SourceType, url: str) -> None:
+        if source_type == SourceType.SITE and get_parser(source_type, url) is None:
+            raise HTTPException(status_code=422, detail="Unsupported site URL")
+
     @staticmethod
     def list(session: Session) -> list[Source]:
         return session.exec(select(Source)).all()
@@ -27,8 +33,7 @@ class SourceService:
 
     @staticmethod
     def create(session: Session, source: SourceWrite) -> Source:
-        # check url
-        # check if parser exists
+        SourceService.validate_site(source.type, source.url)
         source = Source(**source.model_dump())
         session.add(source)
         session.commit()
@@ -37,9 +42,12 @@ class SourceService:
     @staticmethod
     def update(session: Session, source_id: UUID,
                source: SourceUpdate) -> Source:
-        # possible 404
         data = source.model_dump(exclude_unset=True)
         to_change = SourceService.get(session, source_id)
+        if "type" in data or "url" in data:
+            SourceService.validate_site(
+                data.get("type", to_change.type), data.get("url", to_change.url)
+            )
         to_change.sqlmodel_update(data)
         session.add(to_change)
         session.commit()

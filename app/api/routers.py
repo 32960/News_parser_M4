@@ -4,7 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from app.api.schemas import SourceRead, SourceWrite, SourceUpdate, NewsItemRead, PostRead, TaskResponse, GeneratePayload
+from app.api.schemas import SourceRead, SourceWrite, SourceUpdate, NewsItemRead, \
+    PostRead, TaskResponse, ParseResponse, GenerateResponse, GeneratePayload
 from app.db import get_session
 from app.services.source_service import SourceService as s
 from app.services.news_service import NewsService as n
@@ -69,12 +70,12 @@ async def get_post(id: UUID, session: SessionDep):
     return p.get(session, id)
 
 
-@router.post("/parse/", response_model=TaskResponse, status_code=202)
+@router.post("/parse/", response_model=ParseResponse, status_code=202)
 async def parse_sources(session: SessionDep):
     return t.parse(session)
 
 
-@router.post("/generate/", response_model=TaskResponse, status_code=202)
+@router.post("/generate/", response_model=GenerateResponse, status_code=202)
 async def generate_post(session: SessionDep, payload: GeneratePayload):
     return t.generate(session, payload)
 

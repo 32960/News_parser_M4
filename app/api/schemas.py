@@ -4,7 +4,8 @@ from datetime import datetime
 
 from uuid import UUID
 
-from sqlmodel import SQLModel
+from pydantic import field_validator, model_validator
+from sqlmodel import Field, SQLModel
 from app.models import SourceType, PostStatus
 
 
@@ -22,16 +23,42 @@ class SourceRead(SQLModel):
 
 class SourceWrite(SQLModel):
     type: SourceType
-    name: str
-    url: str
+    name: str = Field(min_length=1, max_length=255)
+    url: str = Field(min_length=1)
     enabled: bool
+
+    @field_validator("name", "url")
+    @classmethod
+    def strip_non_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field must not be blank")
+        return value
 
 
 class SourceUpdate(SQLModel):
     type: SourceType | None = None
-    name: str | None = None
-    url: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    url: str | None = Field(default=None, min_length=1)
     enabled: bool | None = None
+
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_null_fields(cls, data: object) -> object:
+        if isinstance(data, dict):
+            for field in ("type", "name", "url", "enabled"):
+                if field in data and data[field] is None:
+                    raise ValueError(f"{field} cannot be null")
+        return data
+
+    @field_validator("name", "url")
+    @classmethod
+    def strip_non_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Field must not be blank")
+        return value
 
 
 class NewsItemRead(SQLModel):
@@ -60,5 +87,13 @@ class TaskResponse(SQLModel):
     id: UUID
 
 
+class ParseResponse(SQLModel):
+    task_id: UUID
+
+
+class GenerateResponse(SQLModel):
+    post_id: UUID
+
+
 class GeneratePayload(SQLModel):
-    news_item_id: UUID
+    news_id: UUID
