@@ -8,6 +8,11 @@ x-app: &app
   depends_on:
     postgres:
       condition: service_healthy
+    redis:
+      condition: service_healthy
+  volumes:
+    # Share Telethon session file between authorize/host and workers
+    - ./telegram_sessions:/app/telegram_sessions
 
 services:
   postgres:
@@ -42,9 +47,15 @@ services:
     ports:
       - "8000:8000"
 
+  # AI and other non-Telegram tasks (can run in parallel)
   celery-worker:
     <<: *app
-    command: uv run -m celery -A celery_app worker -l info
+    command: uv run -m celery -A celery_app worker -l info -Q celery -c 2
+
+  # Parse (may use Telethon) + publish: ONE process at a time (-c 1)
+  celery-telegram-worker:
+    <<: *app
+    command: uv run -m celery -A celery_app worker -l info -Q telegram -c 1
 
   celery-beat:
     <<: *app

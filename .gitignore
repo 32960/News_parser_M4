@@ -3,3 +3,6 @@
 .env
 __pycache__
 *.session
+*.session-journal
+telegram_sessions/*
+!telegram_sessions/.gitkeep

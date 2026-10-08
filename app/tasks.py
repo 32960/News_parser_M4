@@ -142,68 +142,96 @@ def generate_post(post_id: str | UUID) -> str | None:
 
 
 @app.task
-def publish_post(post_id):
+def publish_post(post_id: str | UUID) -> str | None:
     logger.info("Publishing post %s...", post_id)
-    return _publish_post(post_id)
+    result = _publish_post(post_id)
+    return str(result) if result else None
 
 
 @app.task
-def publish_next_post() -> UUID | None:
+def publish_next_post() -> str | None:
+    """
+    Beat task: take ONE ready post and publish it.
+    Order: oldest generated_at first; if equal — smaller id.
+    """
     logger.info("Publishing next ready post...")
     with open_session() as session:
         post = session.exec(
-            select(Post).where(Post.status == PostStatus.GENERATED)
-            .order_by(Post.generated_at)
+            select(Post)
+            .where(Post.status == PostStatus.GENERATED)
+            .order_by(Post.generated_at, Post.id)
         ).first()
         if not post:
             logger.info("No ready posts to publish")
             return None
-        return _publish_post(post.id)
+        result = _publish_post(post.id)
+        return str(result) if result else None
 
 
-def _publish_post(post_id) -> UUID | None:
+def build_publish_message(post: Post) -> str:
+    """Post text + source link only when the news has a URL."""
+    text = (post.generated_text or "").strip()
+    url = (post.news_item.url or "").strip() if post.news_item else ""
+    if url:
+        return f"{text}\n\n{url}"
+    return text
+
+
+def _publish_post(post_id: str | UUID) -> UUID | None:
+    post_uuid = UUID(str(post_id))
     with open_session() as session:
-        post = session.get(Post, UUID(str(post_id)))
+        post = session.get(Post, post_uuid)
         if not prepublish_validate(post):
             return None
+
+        # Already published: do not send again (status check is enough for course)
+        if post.status == PostStatus.PUBLISHED:
+            logger.info("Post %s already published; skip send", post_uuid)
+            return post_uuid
+
         try:
-            asyncio.run(
-                send_message_to_channel(
-                    f'{post.generated_text}\n\n{post.news_item.url}'
-                )
-            )
+            message = build_publish_message(post)
+            asyncio.run(send_message_to_channel(message))
             post.status = PostStatus.PUBLISHED
             post.published_at = utc_now()
             session.add(post)
             session.commit()
-            return post_id
+            logger.info("Published post %s at %s", post_uuid, post.published_at)
+            return post_uuid
         except Exception:
             session.rollback()
-            post = session.get(Post, UUID(str(post_id)))
+            post = session.get(Post, post_uuid)
             if post:
+                # Keep generated_text + generated_at; clear published_at
                 post.status = PostStatus.PUBLICATION_FAILED
                 post.published_at = None
                 session.add(post)
                 session.commit()
-            logger.exception("Failed to publish post %s", post_id)
+            logger.exception("Failed to publish post %s", post_uuid)
             return None
 
 
-def prepublish_validate(post):
-    if not post:
-        logger.warning("Post not found: %s", post.id)
+def prepublish_validate(post: Post | None) -> Post | None:
+    """
+    Worker-side checks before Telegram send.
+
+    Spec notes:
+    - disabled source must NOT block publishing of already generated posts
+    - Telegram news may have url=NULL — that is OK
+    """
+    if post is None:
+        logger.warning("Post not found")
         return None
+    if post.status == PostStatus.PUBLISHED:
+        return post
     if post.status not in (PostStatus.GENERATED, PostStatus.PUBLICATION_FAILED):
-        logger.warning("Post cannot be published: %s", post.id)
-        return None
-    if not post.generated_text.strip():
-        logger.warning("Post has no generated text: %s", post.id)
-        return None
-    if not post.news_item.url:
-        logger.warning("News item has no URL: %s", post.id)
-        return None
-    if not post.news_item.source.enabled:
         logger.warning(
-            "Source disabled for post %s; skipping publication", post.id)
+            "Post %s cannot be published (status=%s)",
+            post.id,
+            post.status,
+        )
+        return None
+    if not post.generated_text or not post.generated_text.strip():
+        logger.warning("Post %s has no generated text", post.id)
         return None
     return post
