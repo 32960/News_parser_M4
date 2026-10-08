@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
 from uuid import UUID
 
 from sqlmodel import Session, select
 
 from app.ai.openai_client import generate_text
-from app.db import open_session, get_session
+from app.db import open_session
 from app.models import Source, Post, PostStatus, NewsItem
 from app.parsers import get_parser
 from app.services.news_service import NewsService
 from app.services.source_service import SourceService
 from app.telegram.client import send_message_to_channel
+from app.utils import utc_now
 from celery_app import app
 
 logger = logging.getLogger(__name__)
@@ -94,15 +94,23 @@ def generate_post(post_id: str | UUID) -> str | None:
             return None
         try:
             text = generate_text(news.raw_text)
-            post.generated_text = text
-            post.generated_at = datetime.now()
+            if not text or not text.strip():
+                raise ValueError("AI returned empty text")
+            post.generated_text = text.strip()
+            post.generated_at = utc_now()
             post.status = PostStatus.GENERATED
             session.add(post)
             session.commit()
         except Exception:
-            post.status = PostStatus.GENERATION_FAILED
-            session.add(post)
-            session.commit()
+            session.rollback()
+            post = session.get(Post, UUID(str(post_id)))
+            if post:
+                post.status = PostStatus.GENERATION_FAILED
+                post.generated_text = None
+                post.generated_at = None
+                post.published_at = None
+                session.add(post)
+                session.commit()
             logger.exception(f"Failed to generate text for post {post_id}")
             return None
 
@@ -131,7 +139,7 @@ def publish_next_post() -> UUID | None:
 
 def _publish_post(post_id) -> UUID | None:
     with open_session() as session:
-        post = session.get(Post, post_id)
+        post = session.get(Post, UUID(str(post_id)))
         if not prepublish_validate(post):
             return None
         try:
@@ -141,14 +149,18 @@ def _publish_post(post_id) -> UUID | None:
                 )
             )
             post.status = PostStatus.PUBLISHED
+            post.published_at = utc_now()
             session.add(post)
             session.commit()
             return post_id
         except Exception:
             session.rollback()
-            post.status = PostStatus.PUBLICATION_FAILED
-            session.add(post)
-            session.commit()
+            post = session.get(Post, UUID(str(post_id)))
+            if post:
+                post.status = PostStatus.PUBLICATION_FAILED
+                post.published_at = None
+                session.add(post)
+                session.commit()
             logger.exception(f"Failed to publish post {post_id}")
             return None
 
