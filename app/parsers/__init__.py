@@ -5,11 +5,12 @@ from app.parsers.telegram_parser import TelegramParser
 
 PARSERS: list[BaseParser] = [
     HabrParser(),
-    TelegramParser()
+    TelegramParser(),
 ]
 
 
-def get_parser(source_type: SourceType, url: str) -> BaseParser:
+def get_parser(source_type: SourceType, url: str) -> BaseParser | None:
+    """Find a parser that can handle this source type + URL, or None."""
     for parser in PARSERS:
         if parser.source_type == source_type and parser.can_handle(url):
             return parser

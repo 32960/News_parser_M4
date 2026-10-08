@@ -6,13 +6,40 @@ from sqlmodel import Session, select
 from app.api.schemas import SourceUpdate, SourceWrite
 from app.models import NewsItem, Source, SourceType
 from app.parsers import get_parser
+from app.parsers.telegram_parser import TelegramParser
 
 
 class SourceService:
     @staticmethod
-    def validate_site(source_type: SourceType, url: str) -> None:
-        if source_type == SourceType.SITE and get_parser(source_type, url) is None:
-            raise HTTPException(status_code=422, detail="Unsupported site URL")
+    def validate_and_normalize_url(
+        source_type: SourceType, url: str
+    ) -> str:
+        """
+        Check that we have a parser for this address.
+        For Telegram also normalize to https://t.me/<username>.
+        """
+        parser = get_parser(source_type, url)
+        if parser is None:
+            if source_type == SourceType.SITE:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Unsupported site URL",
+                )
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Invalid Telegram source. Use @username or "
+                    "https://t.me/<username>"
+                ),
+            )
+
+        if source_type == SourceType.TELEGRAM and isinstance(
+            parser, TelegramParser
+        ):
+            username = parser.normalize_username(url)
+            return f"https://t.me/{username}"
+
+        return url.strip()
 
     @staticmethod
     def list(session: Session) -> list[Source]:
@@ -33,21 +60,30 @@ class SourceService:
 
     @staticmethod
     def create(session: Session, source: SourceWrite) -> Source:
-        SourceService.validate_site(source.type, source.url)
-        source = Source(**source.model_dump())
-        session.add(source)
+        normalized_url = SourceService.validate_and_normalize_url(
+            source.type, source.url
+        )
+        data = source.model_dump()
+        data["url"] = normalized_url
+        db_source = Source(**data)
+        session.add(db_source)
         session.commit()
-        return source
+        return db_source
 
     @staticmethod
     def update(session: Session, source_id: UUID,
                source: SourceUpdate) -> Source:
+        logger.info(f"Updating source {source_id} with data: {source}")
         data = source.model_dump(exclude_unset=True)
         to_change = SourceService.get(session, source_id)
+
         if "type" in data or "url" in data:
-            SourceService.validate_site(
-                data.get("type", to_change.type), data.get("url", to_change.url)
+            next_type = data.get("type", to_change.type)
+            next_url = data.get("url", to_change.url)
+            data["url"] = SourceService.validate_and_normalize_url(
+                next_type, next_url
             )
+
         to_change.sqlmodel_update(data)
         session.add(to_change)
         session.commit()
