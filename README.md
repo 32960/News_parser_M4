@@ -142,7 +142,7 @@ uv run celery -A celery_app flower --port=5555
 | Переменная | Назначение |
 |---|---|
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Для контейнера Postgres |
-| `DATABASE_URL` | Подключение SQLAlchemy (`postgresql+psycopg://...`) |
+| `DATABASE_URL` | Подключение SQLAlchemy (`postgresql+psycopg://...`). В Docker host = `postgres`, локально часто `localhost`. Спецсимволы в пароле лучше URL-encode (`!` → `%21`) |
 | `CELERY_BROKER_URL` | Redis-брокер |
 | `CELERY_RESULT_BACKEND` | Backend результатов Celery |
 | `TELEGRAM_SESSION_PATH` | Путь/имя файла сессии Telethon |
@@ -251,6 +251,7 @@ docker-compose.yaml
 3. Если процесс упадёт **после** успешной отправки в Telegram, но **до** записи `published` в БД, при повторе возможен дубль в канале (для учебной версии по ТЗ допустимо).
 4. Поддерживается один сайт (Habr RSS); новый сайт = новый парсер в коде.
 5. Авторизации в API нет - по ТЗ для локального запуска не обязательна.
+6. Если источник выключили после создания поста, задача генерации может оставить пост в статусе `new` (ИИ не вызывается). Включите источник и снова вызовите `POST /api/generate/` — создастся новый пост.
 
 ---
 

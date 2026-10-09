@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from uuid import UUID
 
@@ -13,7 +12,7 @@ from app.parsers import get_parser
 from app.services.news_service import NewsService
 from app.services.source_service import SourceService
 from app.telegram.client import send_message_to_channel
-from app.utils import utc_now
+from app.utils import run_async, utc_now
 from celery_app import app
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ def parse_sources() -> int:
                 if not parser:
                     logger.warning("Parser not found for source: %s", source)
                     continue
-                articles = asyncio.run(parser.parse(source.url))
+                articles = run_async(parser.parse(source.url))
                 if not articles:
                     logger.warning("No new articles for : %s", source)
                     continue
@@ -44,6 +43,7 @@ def parse_sources() -> int:
                         total_parsed += 1
                         start_generating(session, item.id)
             except Exception:
+                # One broken source must not stop the rest of the loop
                 session.rollback()
                 logger.exception("Failed to parse source %s", source_id)
 
@@ -98,19 +98,29 @@ def generate_post(post_id: str | UUID) -> str | None:
             logger.warning("News not found for post %s", post_id)
             return None
 
-        # Re-check right before AI call: disabled source must not spend API money
+        # Re-check right before AI call: disabled source must not spend API money.
+        # Spec: finish without calling AI. Keep status=new so editor can enable
+        # the source and call POST /api/generate/ again (creates a new Post).
         source = session.get(Source, news.source_id)
         if not source or not source.enabled:
             logger.info(
-                "Source disabled for post %s; skip AI call without changing status",
+                "Source disabled for post %s; skip AI, leave status=%s",
                 post_id,
+                post.status,
             )
             return None
 
         ai_input = text_for_generation(news)
         if not ai_input:
+            # Empty input is a real failure (unlike disabled source)
+            post.status = PostStatus.GENERATION_FAILED
+            post.generated_text = None
+            post.generated_at = None
+            post.published_at = None
+            session.add(post)
+            session.commit()
             logger.warning(
-                "News %s for post %s has no summary/raw_text for AI",
+                "News %s for post %s has no summary/raw_text; marked generation_failed",
                 news.id,
                 post_id,
             )
@@ -191,7 +201,7 @@ def _publish_post(post_id: str | UUID) -> UUID | None:
 
         try:
             message = build_publish_message(post)
-            asyncio.run(send_message_to_channel(message))
+            run_async(send_message_to_channel(message))
             post.status = PostStatus.PUBLISHED
             post.published_at = utc_now()
             session.add(post)

@@ -3,6 +3,7 @@ import logging
 
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import worker_ready
 
 from app.config import get_settings
 
@@ -12,10 +13,12 @@ logger = logging.getLogger(__name__)
 # Queue name for tasks that open the Telethon session file
 TELEGRAM_QUEUE = "telegram"
 
-app = Celery("ainews",
-             broker=settings.celery_broker_url,
-             backend=settings.celery_result_backend,
-             include=["app.tasks"])
+app = Celery(
+    "ainews",
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend,
+    include=["app.tasks"],
+)
 
 app.conf.update(
     task_serializer="json",
@@ -43,5 +46,14 @@ app.conf.update(
         },
     },
 )
+
+
+@worker_ready.connect
+def _init_db_on_worker_ready(**kwargs) -> None:
+    """Ensure tables exist even if Celery starts before / without API."""
+    from app.db import init_db
+
+    init_db()
+
 
 logger.info("Celery app initialized")

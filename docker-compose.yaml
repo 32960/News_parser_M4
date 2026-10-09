@@ -4,7 +4,7 @@ x-app: &app
   environment:
     CELERY_BROKER_URL: redis://redis:6379/0
     CELERY_RESULT_BACKEND: redis://redis:6379/1
-    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
+    DATABASE_URL: ${DATABASE_URL}
   depends_on:
     postgres:
       condition: service_healthy

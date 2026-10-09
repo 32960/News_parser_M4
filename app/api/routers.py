@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlmodel import Session
 
 from app.api.schemas import (
@@ -125,9 +125,16 @@ async def list_news(session: SessionDep):
     description="Optional filter by status, e.g. ?status=generated",
 )
 async def list_posts(
-    session: SessionDep, status: PostStatus | None = None
+    session: SessionDep,
+    post_status: PostStatus | None = Query(
+        default=None,
+        alias="status",
+        description="Filter by post status, e.g. generated",
+    ),
 ):
-    return p.list(session, status)
+    # alias keeps ?status=... in the URL; local name avoids shadowing
+    # the fastapi.status module used in other endpoints.
+    return p.list(session, post_status)
 
 
 @router.get(

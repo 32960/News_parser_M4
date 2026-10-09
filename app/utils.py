@@ -1,5 +1,19 @@
+import asyncio
+from collections.abc import Coroutine
 from datetime import datetime, timezone
+from typing import TypeVar
 from urllib.parse import urlparse
+
+T = TypeVar("T")
+
+
+def run_async(coro: Coroutine[object, object, T]) -> T:
+    """
+    Run an async function from sync Celery tasks.
+
+    Always creates a fresh event loop via asyncio.run (safe for Celery prefork).
+    """
+    return asyncio.run(coro)
 
 
 def utc_now() -> datetime:
