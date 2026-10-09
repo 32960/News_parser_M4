@@ -2,12 +2,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db import init_db, engine
+from app.api.routers import router
+from app.db import engine, init_db
 from app.log_config import configure_logs
-from .api.routers import router
+
 
 @asynccontextmanager
-async  def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):
     try:
         configure_logs()
         init_db()
@@ -17,7 +18,18 @@ async  def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    return FastAPI(lifespan=lifespan)
+    application = FastAPI(
+        title="AINEWS",
+        description=(
+            "AI news post generator for Telegram. "
+            "Manage sources, collect news, generate posts and publish them. "
+            "Interactive docs: /docs"
+        ),
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+    application.include_router(router)
+    return application
+
 
 app = create_app()
-app.include_router(router)

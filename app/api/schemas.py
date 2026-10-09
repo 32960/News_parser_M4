@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-
 from uuid import UUID
 
 from pydantic import field_validator, model_validator
 from sqlmodel import Field, SQLModel
-from app.models import SourceType, PostStatus
+
+from app.models import PostStatus, SourceType
 
 
 class ErrorResponse(SQLModel):
@@ -25,7 +25,7 @@ class SourceWrite(SQLModel):
     type: SourceType
     name: str = Field(min_length=1, max_length=255)
     url: str = Field(min_length=1)
-    enabled: bool
+    enabled: bool = True
 
     @field_validator("name", "url")
     @classmethod
@@ -42,7 +42,6 @@ class SourceUpdate(SQLModel):
     url: str | None = Field(default=None, min_length=1)
     enabled: bool | None = None
 
-
     @model_validator(mode="before")
     @classmethod
     def reject_null_fields(cls, data: object) -> object:
@@ -54,7 +53,9 @@ class SourceUpdate(SQLModel):
 
     @field_validator("name", "url")
     @classmethod
-    def strip_non_blank(cls, value: str) -> str:
+    def strip_non_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
         value = value.strip()
         if not value:
             raise ValueError("Field must not be blank")
@@ -83,15 +84,15 @@ class PostRead(SQLModel):
     status: PostStatus
 
 
-class TaskResponse(SQLModel):
-    id: UUID
-
-
 class ParseResponse(SQLModel):
     task_id: UUID
 
 
 class GenerateResponse(SQLModel):
+    post_id: UUID
+
+
+class PublishResponse(SQLModel):
     post_id: UUID
 
 
