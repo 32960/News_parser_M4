@@ -8,12 +8,18 @@ from sqlmodel import Field, SQLModel
 
 from app.models import PostStatus, SourceType
 
+# Example UUID for Swagger "Try it out" bodies
+_EXAMPLE_UUID = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+
 
 class ErrorResponse(SQLModel):
-    detail: str = Field(
-        description="Human-readable error message",
-        examples=["Source not found"],
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"detail": "Source not found"}]
+        }
     )
+
+    detail: str = Field(description="Human-readable error message")
 
 
 class SourceRead(SQLModel):
@@ -21,7 +27,9 @@ class SourceRead(SQLModel):
     type: SourceType = Field(description="site or telegram")
     name: str = Field(description="Display name")
     url: str = Field(description="Feed URL or Telegram channel link/username")
-    enabled: bool = Field(description="If false, skipped by collection and AI generation")
+    enabled: bool = Field(
+        description="If false, skipped by collection and AI generation"
+    )
 
 
 class SourceWrite(SQLModel):
@@ -45,14 +53,12 @@ class SourceWrite(SQLModel):
     )
 
     type: SourceType = Field(
-        description="site (needs a built-in parser) or telegram",
-        examples=["site"],
+        description="site (needs a built-in parser) or telegram"
     )
     name: str = Field(
         min_length=1,
         max_length=255,
         description="Display name for the source",
-        examples=["Habr"],
     )
     url: str = Field(
         min_length=1,
@@ -60,12 +66,10 @@ class SourceWrite(SQLModel):
             "For site: supported feed URL. "
             "For telegram: @username or https://t.me/<username>"
         ),
-        examples=["https://habr.com/ru/rss/articles/"],
     )
     enabled: bool = Field(
         default=True,
         description="Whether the source is used in collection/generation",
-        examples=[True],
     )
 
     @field_validator("name", "url")
@@ -96,7 +100,6 @@ class SourceUpdate(SQLModel):
     enabled: bool | None = Field(
         default=None,
         description="Set false to stop new collection and generation",
-        examples=[False],
     )
 
     @model_validator(mode="before")
@@ -130,9 +133,12 @@ class NewsItemRead(SQLModel):
     )
     source_id: UUID
     published_at: datetime | None = Field(
-        default=None, description="Publication time in the source (UTC), if known"
+        default=None,
+        description="Publication time in the source (UTC), if known",
     )
-    collected_at: datetime = Field(description="When our service collected the news (UTC)")
+    collected_at: datetime = Field(
+        description="When our service collected the news (UTC)"
+    )
     telegram_channel_id: int | None = None
     telegram_message_id: int | None = None
     raw_text: str = Field(description="Original text without HTML")
@@ -158,36 +164,48 @@ class PostRead(SQLModel):
 
 
 class ParseResponse(SQLModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"task_id": _EXAMPLE_UUID}]
+        }
+    )
+
     task_id: UUID = Field(
-        description="Celery task id for the collection job",
-        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+        description="Celery task id for the collection job"
     )
 
 
 class GenerateResponse(SQLModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"post_id": _EXAMPLE_UUID}]
+        }
+    )
+
     post_id: UUID = Field(
-        description="Created post id; poll GET /api/posts/{id}/ for status",
-        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+        description="Created post id; poll GET /api/posts/{id}/ for status"
     )
 
 
 class PublishResponse(SQLModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"post_id": _EXAMPLE_UUID}]
+        }
+    )
+
     post_id: UUID = Field(
-        description="Post id queued for Telegram send",
-        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+        description="Post id queued for Telegram send"
     )
 
 
 class GeneratePayload(SQLModel):
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
-                {"news_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"}
-            ]
+            "examples": [{"news_id": _EXAMPLE_UUID}]
         }
     )
 
     news_id: UUID = Field(
-        description="ID of an existing news item from GET /api/news/",
-        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+        description="ID of an existing news item from GET /api/news/"
     )

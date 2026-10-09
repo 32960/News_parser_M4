@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -7,6 +8,8 @@ from app.api.schemas import SourceUpdate, SourceWrite
 from app.models import NewsItem, Source, SourceType
 from app.parsers import get_parser
 from app.parsers.telegram_parser import TelegramParser
+
+logger = logging.getLogger(__name__)
 
 
 class SourceService:
@@ -73,8 +76,8 @@ class SourceService:
     @staticmethod
     def update(session: Session, source_id: UUID,
                source: SourceUpdate) -> Source:
-        logger.info(f"Updating source {source_id} with data: {source}")
         data = source.model_dump(exclude_unset=True)
+        logger.info("Updating source %s with data: %s", source_id, data)
         to_change = SourceService.get(session, source_id)
 
         if "type" in data or "url" in data:

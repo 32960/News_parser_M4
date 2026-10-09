@@ -28,4 +28,3 @@ class PostService:
             logger.warning("Post not found: %s", post_id)
             raise HTTPException(status_code=404, detail="Post not found")
         return post
-
