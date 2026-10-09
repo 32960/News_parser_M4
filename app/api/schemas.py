@@ -3,29 +3,70 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import field_validator, model_validator
+from pydantic import ConfigDict, field_validator, model_validator
 from sqlmodel import Field, SQLModel
 
 from app.models import PostStatus, SourceType
 
 
 class ErrorResponse(SQLModel):
-    detail: str
+    detail: str = Field(
+        description="Human-readable error message",
+        examples=["Source not found"],
+    )
 
 
 class SourceRead(SQLModel):
-    id: UUID
-    type: SourceType
-    name: str
-    url: str
-    enabled: bool
+    id: UUID = Field(description="Source ID")
+    type: SourceType = Field(description="site or telegram")
+    name: str = Field(description="Display name")
+    url: str = Field(description="Feed URL or Telegram channel link/username")
+    enabled: bool = Field(description="If false, skipped by collection and AI generation")
 
 
 class SourceWrite(SQLModel):
-    type: SourceType
-    name: str = Field(min_length=1, max_length=255)
-    url: str = Field(min_length=1)
-    enabled: bool = True
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "type": "site",
+                    "name": "Habr",
+                    "url": "https://habr.com/ru/rss/articles/",
+                    "enabled": True,
+                },
+                {
+                    "type": "telegram",
+                    "name": "Example channel",
+                    "url": "https://t.me/durov",
+                    "enabled": True,
+                },
+            ]
+        }
+    )
+
+    type: SourceType = Field(
+        description="site (needs a built-in parser) or telegram",
+        examples=["site"],
+    )
+    name: str = Field(
+        min_length=1,
+        max_length=255,
+        description="Display name for the source",
+        examples=["Habr"],
+    )
+    url: str = Field(
+        min_length=1,
+        description=(
+            "For site: supported feed URL. "
+            "For telegram: @username or https://t.me/<username>"
+        ),
+        examples=["https://habr.com/ru/rss/articles/"],
+    )
+    enabled: bool = Field(
+        default=True,
+        description="Whether the source is used in collection/generation",
+        examples=[True],
+    )
 
     @field_validator("name", "url")
     @classmethod
@@ -37,10 +78,26 @@ class SourceWrite(SQLModel):
 
 
 class SourceUpdate(SQLModel):
-    type: SourceType | None = None
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    url: str | None = Field(default=None, min_length=1)
-    enabled: bool | None = None
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"enabled": False}]
+        }
+    )
+
+    type: SourceType | None = Field(
+        default=None, description="New type (optional)"
+    )
+    name: str | None = Field(
+        default=None, min_length=1, max_length=255, description="New name"
+    )
+    url: str | None = Field(
+        default=None, min_length=1, description="New URL"
+    )
+    enabled: bool | None = Field(
+        default=None,
+        description="Set false to stop new collection and generation",
+        examples=[False],
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -65,36 +122,72 @@ class SourceUpdate(SQLModel):
 class NewsItemRead(SQLModel):
     id: UUID
     title: str
-    summary: str | None = None
-    url: str | None = None
+    summary: str | None = Field(
+        default=None, description="Short summary from source, if any"
+    )
+    url: str | None = Field(
+        default=None, description="Article URL (required for site news)"
+    )
     source_id: UUID
-    published_at: datetime | None = None
-    collected_at: datetime
+    published_at: datetime | None = Field(
+        default=None, description="Publication time in the source (UTC), if known"
+    )
+    collected_at: datetime = Field(description="When our service collected the news (UTC)")
     telegram_channel_id: int | None = None
     telegram_message_id: int | None = None
-    raw_text: str
+    raw_text: str = Field(description="Original text without HTML")
 
 
 class PostRead(SQLModel):
     id: UUID
     news_item: NewsItemRead
-    generated_text: str | None = None
-    generated_at: datetime | None = None
-    published_at: datetime | None = None
-    status: PostStatus
+    generated_text: str | None = Field(
+        default=None, description="AI text; null until generation succeeds"
+    )
+    generated_at: datetime | None = Field(
+        default=None, description="When AI generation succeeded (UTC)"
+    )
+    published_at: datetime | None = Field(
+        default=None, description="When the post was sent to Telegram (UTC)"
+    )
+    status: PostStatus = Field(
+        description=(
+            "new | generated | published | generation_failed | publication_failed"
+        )
+    )
 
 
 class ParseResponse(SQLModel):
-    task_id: UUID
+    task_id: UUID = Field(
+        description="Celery task id for the collection job",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+    )
 
 
 class GenerateResponse(SQLModel):
-    post_id: UUID
+    post_id: UUID = Field(
+        description="Created post id; poll GET /api/posts/{id}/ for status",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+    )
 
 
 class PublishResponse(SQLModel):
-    post_id: UUID
+    post_id: UUID = Field(
+        description="Post id queued for Telegram send",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+    )
 
 
 class GeneratePayload(SQLModel):
-    news_id: UUID
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"news_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"}
+            ]
+        }
+    )
+
+    news_id: UUID = Field(
+        description="ID of an existing news item from GET /api/news/",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
+    )
