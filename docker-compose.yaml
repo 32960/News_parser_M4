@@ -61,11 +61,12 @@ services:
     <<: *app
     command: uv run -m celery -A celery_app beat -l info
 
-#  flower:
-#    <<: *app
-#    command: uv run -m celery -A app.celery_app flower --port=5555
-#    ports:
-#      - "5555:5555"
+  # Celery monitoring UI (optional for debugging, not required by the course spec)
+  flower:
+    <<: *app
+    command: uv run -m celery -A celery_app flower --port=5555
+    ports:
+      - "5555:5555"
 
 volumes:
   postgres_data:
