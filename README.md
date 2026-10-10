@@ -121,14 +121,36 @@ Flower: http://localhost:5555
 
 ## Тесты
 
-Dev-зависимости (pytest):
+Dev-зависимости (pytest, Allure, coverage):
 
 ```bash
 uv sync --group dev
 uv run pytest
 ```
 
+С отчётами локально:
+
+```bash
+uv run pytest --alluredir=allure-results --cov=app --cov-report=html
+# нужен Allure CLI: https://github.com/allure-framework/allure2
+allure serve allure-results
+```
+
 Тесты используют SQLite in-memory, Celery/OpenAI/Telethon не вызываются (delay замокан). Без реальных ключей API.
+
+### CI и отчёты
+
+GitHub Actions (`.github/workflows/tests.yml`) на каждый push/PR в `dev` и `master`:
+- гоняет `pytest` + `pytest-cov` + `allure-pytest`
+- кладёт сырые результаты и coverage в **Artifacts** прогона (скачать из вкладки Actions; ссылка не постоянная)
+- на **push** публикует отчёты на GitHub Pages (постоянные ссылки для README):
+
+| Отчёт | Ссылка |
+|---|---|
+| Allure (с историей прогонов) | https://32960.github.io/News_parser_M4/ |
+| Coverage HTML | https://32960.github.io/News_parser_M4/coverage/ |
+
+Один раз после первого успешного деплоя: **Settings → Pages → Build and deployment → Deploy from a branch → `gh-pages` / `/ (root)`**.
 
 ---
 
@@ -299,4 +321,4 @@ docker-compose.yaml
 | Защита от дубля в канале при крэше после send | Не сделано | В ТЗ — дополнительная задача; учебный минимум допускает проверку только статуса в БД |
 | Flower | Сделано | Удобно для отладки Celery; в обязательную часть ТЗ не входит |
 | Больше сайт-парсеров / RSS через API | Не сделано | Бонус «новые источники» |
-| Тесты основных сценариев | В работе (каркас + якорные сценарии) | `uv run pytest`; дальше расширим под Verge/фильтры/stats |
+| Тесты основных сценариев | В работе (каркас + якорные сценарии) | CI + Allure/coverage на Pages; дальше расширим под Verge/фильтры/stats |

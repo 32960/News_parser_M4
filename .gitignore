@@ -6,3 +6,11 @@ __pycache__
 *.session-journal
 telegram_sessions/*
 !telegram_sessions/.gitkeep
+
+# Test / coverage / Allure (local + CI workspace)
+.coverage
+coverage.xml
+htmlcov/
+allure-results/
+allure-report/
+site/

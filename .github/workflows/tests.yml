@@ -1,0 +1,100 @@
+name: Tests
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+
+permissions:
+  contents: write
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked --group dev
+
+      - name: Load previous Allure history
+        uses: actions/checkout@v4
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Run tests
+        run: >
+          uv run pytest -q
+          --alluredir=allure-results
+          --cov=app
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+          --cov-report=html:htmlcov
+
+      - name: Prepare Allure history
+        if: always()
+        run: |
+          if [ -d gh-pages/history ]; then
+            cp -r gh-pages/history allure-results/history
+          fi
+
+      - name: Set up Java (Allure CLI)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          npm install -g allure-commandline
+          allure generate allure-results -o allure-report --clean
+
+      - name: Build GitHub Pages site
+        if: always()
+        run: |
+          mkdir -p site
+          cp -r allure-report/. site/
+          cp -r htmlcov site/coverage
+          cp coverage.xml site/coverage.xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            htmlcov/
+            coverage.xml
+          if-no-files-found: ignore
+
+      - name: Upload Allure results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results/
+          if-no-files-found: ignore
+
+      - name: Deploy reports to GitHub Pages
+        if: github.event_name == 'push' && always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
+          force_orphan: false
