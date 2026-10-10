@@ -65,13 +65,18 @@ jobs:
           npm install -g allure-commandline
           allure generate allure-results -o allure-report --clean
 
-      - name: Build GitHub Pages site
+      - name: Attach coverage HTML to Allure site
         if: always()
         run: |
-          mkdir -p site
-          cp -r allure-report/. site/
-          cp -r htmlcov site/coverage
-          cp coverage.xml site/coverage.xml
+          set -eux
+          test -f htmlcov/index.html
+          test -f coverage.xml
+          rm -rf allure-report/coverage
+          mkdir -p allure-report/coverage
+          cp -a htmlcov/. allure-report/coverage/
+          cp -f coverage.xml allure-report/coverage.xml
+          test -f allure-report/coverage/index.html
+          ls -la allure-report/coverage | head
 
       - name: Upload coverage artifact
         if: always()
@@ -81,7 +86,7 @@ jobs:
           path: |
             htmlcov/
             coverage.xml
-          if-no-files-found: ignore
+          if-no-files-found: error
 
       - name: Upload Allure results artifact
         if: always()
@@ -89,12 +94,14 @@ jobs:
         with:
           name: allure-results
           path: allure-results/
-          if-no-files-found: ignore
+          if-no-files-found: error
 
       - name: Deploy reports to GitHub Pages
         if: github.event_name == 'push' && always()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: site
+          publish_dir: allure-report
           force_orphan: false
+          # Keep a visible commit history on gh-pages; coverage lives under /coverage/
+          enable_jekyll: false
