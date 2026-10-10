@@ -43,6 +43,12 @@ class SourceWrite(SQLModel):
                     "enabled": True,
                 },
                 {
+                    "type": "site",
+                    "name": "The Verge",
+                    "url": "https://www.theverge.com/rss/index.xml",
+                    "enabled": True,
+                },
+                {
                     "type": "telegram",
                     "name": "Example channel",
                     "url": "https://t.me/durov",

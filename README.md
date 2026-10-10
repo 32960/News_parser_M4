@@ -42,10 +42,11 @@
 
 ### Сайты (`type=site`)
 
-Сейчас один парсер. API принимает **только** этот адрес:
+API принимает **только** URL, для которых есть парсер:
 
 ```text
 https://habr.com/ru/rss/articles/
+https://www.theverge.com/rss/index.xml
 ```
 
 Любой другой site-URL вернёт **HTTP 422**.
@@ -203,6 +204,10 @@ curl -X POST http://localhost:8000/api/sources/ \
 
 curl -X POST http://localhost:8000/api/sources/ \
   -H "Content-Type: application/json" \
+  -d "{\"type\":\"site\",\"name\":\"The Verge\",\"url\":\"https://www.theverge.com/rss/index.xml\",\"enabled\":true}"
+
+curl -X POST http://localhost:8000/api/sources/ \
+  -H "Content-Type: application/json" \
   -d "{\"type\":\"telegram\",\"name\":\"Demo\",\"url\":\"https://t.me/durov\",\"enabled\":true}"
 ```
 
@@ -268,7 +273,7 @@ curl -X POST http://localhost:8000/api/posts/<post_id>/publish/
 app/
   api/          # роутеры и Pydantic-схемы
   services/     # бизнес-логика
-  parsers/      # Habr + Telegram
+  parsers/      # Habr, The Verge, Telegram
   ai/           # OpenAI
   telegram/     # Telethon client + authorize
   models.py     # таблицы БД
@@ -284,7 +289,7 @@ docker-compose.yaml
 1. После смены схемы БД при отсутствии Alembic может понадобиться пересоздать volume Postgres (`docker compose down -v`) - учебные данные пропадут.
 2. Один файл сессии Telethon: задачи сбора и публикации идут в очередь `telegram` с concurrency=1.
 3. Если процесс упадёт **после** успешной отправки в Telegram, но **до** записи `published` в БД, при повторе возможен дубль в канале (для учебной версии по ТЗ допустимо).
-4. Поддерживается один сайт (Habr RSS); новый сайт = новый парсер в коде.
+4. Поддерживаемые сайты: Habr RSS и The Verge Atom; новый сайт = новый парсер в коде.
 5. Авторизации в API нет - по ТЗ для локального запуска не обязательна.
 6. Если источник выключили после создания поста, задача генерации может оставить пост в статусе `new` (ИИ не вызывается). Включите источник и снова вызовите `POST /api/generate/` — создастся новый пост.
 
@@ -296,7 +301,7 @@ docker-compose.yaml
 
 | Пункт | Статус |
 |---|---|
-| Сбор с поддерживаемого сайта (Habr RSS) | Сделано |
+| Сбор с поддерживаемого сайта (Habr RSS / The Verge) | Сделано |
 | Сбор из публичных Telegram-каналов | Сделано |
 | Управление источниками (CRUD, `enabled`) | Сделано |
 | Дедупликация новостей в БД | Сделано |
@@ -320,5 +325,5 @@ docker-compose.yaml
 | Автоматические retry OpenAI / Telegram | Не сделано | Повтор уже можно сделать вручную через API |
 | Защита от дубля в канале при крэше после send | Не сделано | В ТЗ — дополнительная задача; учебный минимум допускает проверку только статуса в БД |
 | Flower | Сделано | Удобно для отладки Celery; в обязательную часть ТЗ не входит |
-| Больше сайт-парсеров / RSS через API | Не сделано | Бонус «новые источники» |
-| Тесты основных сценариев | В работе (каркас + якорные сценарии) | CI + Allure/coverage на Pages; дальше расширим под Verge/фильтры/stats |
+| Больше сайт-парсеров / RSS через API | Частично | Добавлен The Verge; дальше можно ещё фиды |
+| Тесты основных сценариев | В работе (каркас + якорные + Verge) | CI + Allure/coverage на Pages; дальше фильтры/stats |

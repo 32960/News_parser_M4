@@ -2,9 +2,11 @@ from app.models import SourceType
 from app.parsers.base_parser import BaseParser
 from app.parsers.habr_parser import HabrParser
 from app.parsers.telegram_parser import TelegramParser
+from app.parsers.verge_parser import VergeParser
 
 PARSERS: list[BaseParser] = [
     HabrParser(),
+    VergeParser(),
     TelegramParser(),
 ]
 

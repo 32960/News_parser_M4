@@ -24,7 +24,9 @@ AI news post generator for Telegram.
 - **409** — conflict (e.g. delete source with news, generate for disabled source, publish without text)
 - **422** — invalid body or unsupported site URL
 
-Supported site URL today: `https://habr.com/ru/rss/articles/`
+Supported site URLs:
+- `https://habr.com/ru/rss/articles/`
+- `https://www.theverge.com/rss/index.xml`
 """
 
 OPENAPI_TAGS = [

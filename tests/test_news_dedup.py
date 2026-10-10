@@ -31,7 +31,7 @@ def test_duplicate_telegram_ids_are_skipped(session, habr_source):
         "collected_at": utc_now(),
     }
     first = NewsService.create(session, article)
-    second = NewsService.create(session, dict(article))
+    second = NewsService.create(session, article)
 
     assert first is not None
     assert second is None
