@@ -1,0 +1,1 @@
+WARNING  app.services.news_service:news_service.py:31 Duplicate article: https://habr.com/ru/articles/999/

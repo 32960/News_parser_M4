@@ -1,0 +1,1 @@
+WARNING  app.services.news_service:news_service.py:43 Duplicate Telegram article: channel_id=-100123, message_id=42
