@@ -111,10 +111,46 @@ async def delete_source(source_id: UUID, session: SessionDep):
     response_model=list[NewsItemRead],
     tags=["News"],
     summary="List collected news",
-    description="News saved after collection (manual or scheduled).",
+    description=(
+        "News saved after collection (manual or scheduled). "
+        "Optional global filters: keywords (`q`), language (`lang`), "
+        "recency (`max_age_hours`), and `source_id`."
+    ),
 )
-async def list_news(session: SessionDep):
-    return n.list(session)
+async def list_news(
+    session: SessionDep,
+    q: str | None = Query(
+        default=None,
+        description="Keyword search in title, summary, and raw_text",
+        examples=["python"],
+    ),
+    lang: str | None = Query(
+        default=None,
+        description="Language filter: ru or en (rough detector)",
+        examples=["en"],
+    ),
+    max_age_hours: int | None = Query(
+        default=None,
+        ge=1,
+        le=24 * 365,
+        description=(
+            "Only news published (or collected, if publish time unknown) "
+            "within the last N hours"
+        ),
+        examples=[24],
+    ),
+    source_id: UUID | None = Query(
+        default=None,
+        description="Only news from this source",
+    ),
+):
+    return n.list(
+        session,
+        q=q,
+        lang=lang,
+        max_age_hours=max_age_hours,
+        source_id=source_id,
+    )
 
 
 @router.get(

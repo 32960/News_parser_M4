@@ -1,23 +1,84 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
+from uuid import UUID
 
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.api.schemas import NewsItemRead
 from app.models import NewsItem
-from app.utils import as_utc, blank_to_none
+from app.utils import as_utc, blank_to_none, detect_text_language, utc_now
 
 logger = logging.getLogger(__name__)
 
 
 class NewsService:
     @staticmethod
-    def list(session: Session) -> list[NewsItemRead]:
-        return session.exec(select(NewsItem)).all()
+    def list(
+        session: Session,
+        *,
+        q: str | None = None,
+        lang: str | None = None,
+        max_age_hours: int | None = None,
+        source_id: UUID | None = None,
+    ) -> list[NewsItemRead]:
+        """
+        List news with optional global filters (bonus: keywords / lang / age).
+
+        ``q`` — case-insensitive substring in title, summary, or raw_text.
+        ``lang`` — ``ru`` / ``en`` (rough detector on title+text).
+        ``max_age_hours`` — keep items whose published_at (or collected_at
+        if publish time is unknown) is not older than N hours.
+        ``source_id`` — only this source.
+        """
+        stmt = select(NewsItem)
+
+        if source_id is not None:
+            stmt = stmt.where(NewsItem.source_id == source_id)
+
+        keyword = blank_to_none(q)
+        if keyword is not None:
+            pattern = f"%{keyword}%"
+            stmt = stmt.where(
+                or_(
+                    col(NewsItem.title).ilike(pattern),
+                    col(NewsItem.raw_text).ilike(pattern),
+                    col(NewsItem.summary).ilike(pattern),
+                )
+            )
+
+        if max_age_hours is not None:
+            cutoff = utc_now() - timedelta(hours=max_age_hours)
+            stmt = stmt.where(
+                or_(
+                    NewsItem.published_at >= cutoff,
+                    and_(
+                        NewsItem.published_at.is_(None),
+                        NewsItem.collected_at >= cutoff,
+                    ),
+                )
+            )
+
+        stmt = stmt.order_by(col(NewsItem.collected_at).desc())
+        items = list(session.exec(stmt).all())
+
+        lang_code = blank_to_none(lang)
+        if lang_code is not None:
+            wanted = lang_code.lower()
+            items = [
+                item
+                for item in items
+                if detect_text_language(
+                    f"{item.title}\n{item.raw_text}"
+                )
+                == wanted
+            ]
+
+        return items
 
     @staticmethod
     def create(session: Session, article: dict[str, Any]) -> NewsItem | None:

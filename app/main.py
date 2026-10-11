@@ -12,8 +12,9 @@ AI news post generator for Telegram.
 ## Typical flow
 1. **Sources** — create a site or Telegram source (`POST /api/sources/`)
 2. **Collect** — `POST /api/parse/` (HTTP 202 + `task_id`), then check `GET /api/news/`
-3. **Generate** — automatic after new news, or manual `POST /api/generate/` (202 + `post_id`)
-4. **Publish** — on schedule (UTC `:00` / `:30`) or manual `POST /api/posts/{id}/publish/`
+3. **Filter news** — optional query on `GET /api/news/`: `q`, `lang`, `max_age_hours`, `source_id`
+4. **Generate** — automatic after new news, or manual `POST /api/generate/` (202 + `post_id`)
+5. **Publish** — on schedule (UTC `:00` / `:30`) or manual `POST /api/posts/{id}/publish/`
 
 ## Useful response codes
 - **200** — read/update OK; also: publish when post is already `published`
@@ -36,7 +37,9 @@ OPENAPI_TAGS = [
     },
     {
         "name": "News",
-        "description": "Collected news items from enabled sources",
+        "description": (
+            "Collected news; supports filters q / lang / max_age_hours / source_id"
+        ),
     },
     {
         "name": "Posts",

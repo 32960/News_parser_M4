@@ -43,6 +43,21 @@ def is_absolute_http_url(url: str | None) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
+def detect_text_language(text: str) -> str:
+    """
+    Rough language tag for news filters (no external model).
+
+    Returns ``ru``, ``en``, or ``unknown`` based on Cyrillic vs Latin letter counts.
+    Good enough for Habr (ru) vs The Verge (en); not a full NLP detector.
+    """
+    sample = (text or "")[:2000].lower()
+    cyrillic = sum(1 for ch in sample if "а" <= ch <= "я" or ch == "ё")
+    latin = sum(1 for ch in sample if "a" <= ch <= "z")
+    if cyrillic == 0 and latin == 0:
+        return "unknown"
+    return "ru" if cyrillic >= latin else "en"
+
+
 def title_from_text(raw_text: str, fallback_title: str | None = None) -> str:
     """
     Build a non-empty title for NewsItem.
