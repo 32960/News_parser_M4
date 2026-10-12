@@ -15,6 +15,7 @@ AI news post generator for Telegram.
 3. **Filter news** — optional query on `GET /api/news/`: `q`, `lang`, `max_age_hours`, `source_id`
 4. **Generate** — automatic after new news, or manual `POST /api/generate/` (202 + `post_id`)
 5. **Publish** — on schedule (UTC `:00` / `:30`) or manual `POST /api/posts/{id}/publish/`
+6. **Stats** — `GET /api/stats/` for totals and per-source collection health
 
 ## Useful response codes
 - **200** — read/update OK; also: publish when post is already `published`
@@ -48,6 +49,10 @@ OPENAPI_TAGS = [
     {
         "name": "Jobs",
         "description": "Background jobs: collection and AI generation",
+    },
+    {
+        "name": "Stats",
+        "description": "Collected / generated / published counts and errors",
     },
 ]
 

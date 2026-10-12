@@ -265,6 +265,14 @@ curl -X POST http://localhost:8000/api/posts/<post_id>/publish/
 
 Автоматически Beat отправляет **один** готовый пост в `HH:00` и `HH:30` UTC.
 
+### 5. Статистика
+
+```bash
+curl http://localhost:8000/api/stats/
+```
+
+Ответ: сколько собрано / сгенерировано / опубликовано, ошибки, и по каждому источнику — `news_count` и `last_successful_collection_at` (максимум `news.collected_at`).
+
 ---
 
 ## Расписание
@@ -338,4 +346,5 @@ docker-compose.yaml
 | Flower | Сделано | Удобно для отладки Celery; в обязательную часть ТЗ не входит |
 | Больше сайт-парсеров / RSS через API | Частично | Добавлен The Verge; дальше можно ещё фиды |
 | Отбор новостей (фильтры) | Сделано | `GET /api/news/?q=&lang=&max_age_hours=&source_id=` |
-| Тесты основных сценариев | В работе | CI + Allure/coverage; дальше расширим под stats |
+| Статистика работы | Сделано | `GET /api/stats/` |
+| Тесты основных сценариев | В работе | CI + Allure/coverage; якорные сценарии + фильтры/stats |

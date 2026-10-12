@@ -215,3 +215,35 @@ class GeneratePayload(SQLModel):
     news_id: UUID = Field(
         description="ID of an existing news item from GET /api/news/"
     )
+
+
+class SourceStatsRead(SQLModel):
+    id: UUID
+    name: str
+    enabled: bool
+    news_count: int = Field(description="Collected news items for this source")
+    last_successful_collection_at: datetime | None = Field(
+        default=None,
+        description=(
+            "Latest news.collected_at for this source; null if nothing collected"
+        ),
+    )
+    generated: int = Field(
+        description="Posts in generated or published status"
+    )
+    published: int
+    generation_failed: int
+    publication_failed: int
+
+
+class StatsRead(SQLModel):
+    collected: int = Field(description="Total news items in the database")
+    generated: int = Field(
+        description="Posts with status generated or published"
+    )
+    published: int = Field(description="Posts with status published")
+    generation_failed: int
+    publication_failed: int
+    sources: list[SourceStatsRead] = Field(
+        description="Per-source breakdown, including last successful collection"
+    )

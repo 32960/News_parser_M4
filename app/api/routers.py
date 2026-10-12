@@ -17,12 +17,14 @@ from app.api.schemas import (
     SourceRead,
     SourceUpdate,
     SourceWrite,
+    StatsRead,
 )
 from app.db import get_session
 from app.models import PostStatus
 from app.services.news_service import NewsService as n
 from app.services.post_service import PostService as p
 from app.services.source_service import SourceService as s
+from app.services.stats_service import StatsService
 from app.services.task_service import TaskService as t
 
 router = APIRouter(prefix="/api")
@@ -215,6 +217,21 @@ async def publish_post(
     body, code = t.publish_response(session, id)
     response.status_code = code
     return body
+
+
+@router.get(
+    "/stats/",
+    response_model=StatsRead,
+    tags=["Stats"],
+    summary="Service statistics",
+    description=(
+        "Counts of collected / generated / published items, failure counts, "
+        "and per-source last successful collection time "
+        "(max news.collected_at)."
+    ),
+)
+async def get_stats(session: SessionDep):
+    return StatsService.get(session)
 
 
 @router.post(
