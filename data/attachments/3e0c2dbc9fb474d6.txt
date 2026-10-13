@@ -1,0 +1,20 @@
+ERROR    app.tasks:tasks.py:220 Failed to publish post 8884b71a-be3b-42df-8e2f-079a62add933
+Traceback (most recent call last):
+  File "/home/runner/work/News_parser_M4/News_parser_M4/app/tasks.py", line 204, in _publish_post
+    run_async(send_message_to_channel(message))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/News_parser_M4/News_parser_M4/app/utils.py", line 16, in run_async
+    return asyncio.run(coro)
+           ~~~~~~~~~~~^^^^^^
+  File "/home/runner/.local/share/uv/python/cpython-3.14.8-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/home/runner/.local/share/uv/python/cpython-3.14.8-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/runner/.local/share/uv/python/cpython-3.14.8-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/work/News_parser_M4/News_parser_M4/tests/test_tasks_publish.py", line 13, in _fail_send
+    raise ConnectionError("Telegram unreachable")
+ConnectionError: Telegram unreachable
