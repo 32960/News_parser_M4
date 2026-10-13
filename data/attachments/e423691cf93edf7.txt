@@ -1,7 +1,0 @@
-ERROR    app.tasks:tasks.py:148 Failed to generate text for post c1fd7a0d-ea70-40d2-ab64-fa83538fd472
-Traceback (most recent call last):
-  File "/home/runner/work/News_parser_M4/News_parser_M4/app/tasks.py", line 130, in generate_post
-    text = generate_text(ai_input)
-  File "/home/runner/work/News_parser_M4/News_parser_M4/tests/test_tasks_generation.py", line 36, in _boom
-    raise RuntimeError("OpenAI down")
-RuntimeError: OpenAI down
