@@ -151,6 +151,8 @@ GitHub Actions (`.github/workflows/tests.yml`) на каждый push/PR в `dev
 | Allure (с историей прогонов) | https://32960.github.io/News_parser_M4/ |
 | Coverage HTML | https://32960.github.io/News_parser_M4/coverage/ |
 
+В Allure: **Overview → Environment → `Coverage.HTML`** (кликабельная ссылка на coverage). Сам HTML лежит рядом на Pages в `/coverage/`, не внутри виджетов Allure.
+
 Один раз после первого успешного деплоя: **Settings → Pages → Build and deployment → Deploy from a branch → `gh-pages` / `/ (root)`**.
 
 ---
@@ -347,4 +349,4 @@ docker-compose.yaml
 | Больше сайт-парсеров / RSS через API | Частично | Добавлен The Verge; дальше можно ещё фиды |
 | Отбор новостей (фильтры) | Сделано | `GET /api/news/?q=&lang=&max_age_hours=&source_id=` |
 | Статистика работы | Сделано | `GET /api/stats/` |
-| Тесты основных сценариев | В работе | CI + Allure/coverage; якорные сценарии + фильтры/stats |
+| Тесты основных сценариев | Сделано | CRUD, фильтры, stats, generate/publish, ошибки OpenAI/Telegram (моки), parse |

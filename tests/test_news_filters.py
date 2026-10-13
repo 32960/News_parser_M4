@@ -99,6 +99,34 @@ def test_filter_by_max_age_hours(client, session, habr_source):
     assert titles == {"Fresh"}
 
 
+def test_filters_can_be_combined(client, session, habr_source):
+    now = utc_now()
+    _add_news(
+        session,
+        habr_source,
+        title="Fresh Python",
+        url="https://habr.com/ru/articles/40/",
+        raw_text="Fresh Python article body about APIs.",
+        published_at=now - timedelta(hours=1),
+    )
+    _add_news(
+        session,
+        habr_source,
+        title="Old Python",
+        url="https://habr.com/ru/articles/41/",
+        raw_text="Old Python article body about APIs.",
+        published_at=now - timedelta(hours=72),
+    )
+
+    response = client.get(
+        "/api/news/",
+        params={"q": "Python", "max_age_hours": 24},
+    )
+    assert response.status_code == 200
+    titles = {item["title"] for item in response.json()}
+    assert titles == {"Fresh Python"}
+
+
 def test_filter_by_source_id(client, session, habr_source):
     verge = Source(
         type=SourceType.SITE,

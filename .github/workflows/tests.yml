@@ -52,6 +52,26 @@ jobs:
             cp -r gh-pages/history allure-results/history
           fi
 
+      - name: Write Allure environment (coverage link)
+        if: always()
+        run: |
+          set -eux
+          test -f coverage.xml
+          COVERAGE_PCT="$(
+            uv run python -c "
+          import xml.etree.ElementTree as ET
+          root = ET.parse('coverage.xml').getroot()
+          print(f\"{float(root.attrib['line-rate']) * 100:.1f}%\")
+          "
+          )"
+          # Absolute URL → clickable in Allure Overview → Environment
+          {
+            echo "Python=3.14"
+            echo "Coverage=${COVERAGE_PCT}"
+            echo "Coverage.HTML=https://32960.github.io/News_parser_M4/coverage/"
+          } > allure-results/environment.properties
+          cat allure-results/environment.properties
+
       - name: Set up Java (Allure CLI)
         if: always()
         uses: actions/setup-java@v4
@@ -74,6 +94,9 @@ jobs:
           rm -rf allure-report/coverage
           mkdir -p allure-report/coverage
           cp -a htmlcov/. allure-report/coverage/
+          # coverage.py ships htmlcov/.gitignore with "*"; if kept, peaceiris
+          # publishes an empty coverage/ folder and /coverage/ returns 404
+          rm -f allure-report/coverage/.gitignore
           cp -f coverage.xml allure-report/coverage.xml
           test -f allure-report/coverage/index.html
           ls -la allure-report/coverage | head

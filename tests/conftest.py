@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Generator
+from contextlib import contextmanager
 from uuid import UUID
 
 import pytest
@@ -51,6 +52,23 @@ def engine():
 def session(engine) -> Generator[Session, None, None]:
     with Session(engine) as session:
         yield session
+
+
+@pytest.fixture()
+def task_session(session: Session, monkeypatch: pytest.MonkeyPatch):
+    """
+    Point Celery task code at the same SQLite session as API fixtures.
+
+    Tasks call open_session() on the module engine (another in-memory DB);
+    without this patch they would not see fixture rows.
+    """
+
+    @contextmanager
+    def _open_session():
+        yield session
+
+    monkeypatch.setattr("app.tasks.open_session", _open_session)
+    return session
 
 
 @pytest.fixture()
